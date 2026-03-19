@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cryo Tank Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c14; --surface:#0f1624; --surface2:#161f30; --surface3:#1c2840;
+  --border:#1e2d47; --border2:#253552; --accent:#38bdf8; --text:#dde5f0;
+  --text-dim:#8da0bb; --text-muted:#4a6080; --essential:#f59e0b; --radius:10px;
+  --c0:#38bdf8;--c1:#f472b6;--c2:#a78bfa;--c3:#34d399;--c4:#fb923c;
+  --c5:#e879f9;--c6:#facc15;--c7:#f87171;--c8:#4ade80;--c9:#60a5fa;
+  --c10:#c084fc;--c11:#fdba74;--c12:#86efac;--c13:#67e8f9;--c14:#fda4af;
+  --c15:#d9f99d;--c16:#a5f3fc;--c17:#fbbf24;--c18:#f9a8d4;--c19:#7dd3fc;--c20:#6ee7b7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(56,189,248,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(56,189,248,.025) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+header{padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(8,12,20,.96);backdrop-filter:blur(10px);position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{display:flex;flex-direction:column;gap:1px;margin-right:auto}
+.logo h1{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--accent)}
+.logo p{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;letter-spacing:.4px}
+.stats{display:flex;gap:20px}
+.stat{text-align:center}
+.stat-v{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--accent)}
+.stat-l{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted)}
+.edit-toggle{padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.edit-toggle:hover{border-color:var(--essential);color:var(--essential)}
+.edit-toggle.on{background:rgba(245,158,11,.15);border-color:var(--essential);color:var(--essential);font-weight:600}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(8,12,20,.9);padding:0 28px;position:sticky;top:57px;z-index:199}
+.tab{padding:11px 18px 10px;font-size:13px;font-weight:500;color:var(--text-dim);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;font-family:'DM Sans',sans-serif;margin-bottom:-1px}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-panel{display:none;flex-direction:column}
+.tab-panel.active{display:flex}
+
+/* CHANGE BAR */
+.change-bar{display:none;padding:7px 28px;background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.2);font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--essential);align-items:center;gap:10px}
+.change-bar.on{display:flex}
+.change-bar button{font-size:11px;padding:2px 9px;border-radius:4px;border:1px solid rgba(245,158,11,.4);background:none;color:var(--essential);cursor:pointer;font-family:'JetBrains Mono',monospace}
+.change-bar button:hover{background:rgba(245,158,11,.15)}
+
+/* CONTROLS */
+.controls{padding:11px 28px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--border);background:rgba(15,22,36,.7)}
+.sw{position:relative;flex:1;min-width:180px;max-width:360px}
+.sw svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted)}
+input[type=search]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 11px 8px 32px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+input[type=search]:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(56,189,248,.1)}
+input[type=search]::placeholder{color:var(--text-muted)}
+.fg{display:flex;gap:5px;flex-wrap:wrap}
+.fb{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);font-size:12px;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .15s;white-space:nowrap}
+.fb:hover{border-color:var(--accent);color:var(--accent)}
+.fb.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.fb.ess.active{background:var(--essential);border-color:var(--essential);color:var(--bg)}
+.results-bar{padding:6px 28px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);border-bottom:1px solid var(--border)}
+.results-bar span{color:var(--accent)}
+
+/* LEGEND */
+.legend-bar{padding:7px 28px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:rgba(8,12,20,.7);align-items:center}
+.legend-bar-title{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.leg-item{display:flex;align-items:center;gap:4px}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+.leg-label{font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* BOX GRID */
+.boxes-wrap{padding:18px 28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+
+/* BOX CARD */
+.box-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s,box-shadow .2s;animation:fadeUp .22s ease both}
+.box-card:hover{border-color:var(--border2);box-shadow:0 0 18px rgba(56,189,248,.05)}
+.box-card.ess{border-color:rgba(245,158,11,.25)}
+.box-card.ess:hover{border-color:rgba(245,158,11,.45)}
+.box-card.hidden{display:none}
+
+/* BOX HEADER */
+.box-hdr{padding:9px 13px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.box-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(56,189,248,.1);color:var(--accent);white-space:nowrap;flex-shrink:0}
+.ess .box-tag{background:rgba(245,158,11,.12);color:var(--essential)}
+.box-note-text{font-size:12px;font-weight:500;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.box-cnt{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* INLINE EDIT INPUTS */
+.box-id-input{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;border:1px dashed rgba(245,158,11,.6);background:rgba(245,158,11,.08);color:var(--essential);width:76px;outline:none;transition:all .15s}
+.box-id-input:focus{border-style:solid;border-color:var(--essential);background:rgba(245,158,11,.15);box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+.box-note-input{font-size:12px;font-weight:400;color:var(--text-dim);background:transparent;border:1px dashed rgba(56,189,248,.3);border-radius:4px;padding:2px 7px;outline:none;flex:1;font-family:'DM Sans',sans-serif;min-width:0;transition:all .15s}
+.box-note-input::placeholder{color:var(--text-muted);font-style:italic;font-size:11px}
+.box-note-input:focus{border-style:solid;border-color:var(--accent);background:var(--surface2);color:var(--text)}
+
+/* FILL BAR */
+.fill-row{padding:5px 13px 2px;display:flex;justify-content:space-between;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)}
+.fill-row span:last-child{color:var(--accent)}
+.fill-bar{margin:0 13px 9px;height:2px;background:var(--surface3);border-radius:1px;overflow:hidden}
+.fill-inner{height:100%;background:linear-gradient(90deg,#7c3aed,var(--accent));border-radius:1px}
+
+/* COLUMN LABELS */
+.col-lbls{padding:0 13px;display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.col-lbl{text-align:center;font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)}
+
+/* VIAL GRID */
+.vgrid{padding:3px 13px 12px;display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.vial{aspect-ratio:1;border-radius:3px;position:relative;border:1px solid transparent;transition:transform .1s}
+.vial.empty{background:#0b1220;border-color:#0f1929}
+.vial.filled{cursor:pointer}
+.vial.filled:hover{transform:scale(1.18);z-index:10}
+.vial.dimmed{opacity:.15}
+.vial.hl{animation:vpulse 1.8s ease infinite}
+.vial[data-tip]:hover::before{content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#060a12;border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:10px;padding:5px 9px;border-radius:5px;white-space:normal;z-index:1000;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.7);max-width:200px;text-align:center;line-height:1.5}
+
+/* EDIT MODE */
+body.edit .vial.empty{border-style:dashed;border-color:#1a3050;background:#0c1828;cursor:pointer}
+body.edit .vial.empty:hover{border-color:#34d399;background:rgba(52,211,153,.08)}
+body.edit .vial.filled:hover{border-color:var(--essential) !important}
+.box-edit-bar{display:none;padding:6px 13px 8px;gap:6px;align-items:center;border-top:1px solid var(--border)}
+body.edit .box-edit-bar{display:flex}
+.ebb{font-size:11px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .12s}
+.ebb:hover{border-color:var(--accent);color:var(--accent)}
+.ebb.danger:hover{border-color:#f87171;color:#f87171}
+
+/* ADD BOX */
+.add-box{display:none;background:var(--surface);border:2px dashed var(--border);border-radius:var(--radius);min-height:100px;cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:13px;transition:all .15s}
+body.edit .add-box{display:flex}
+.add-box:hover{border-color:#34d399;color:#34d399}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.on{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:420px;max-width:95vw;box-shadow:0 24px 60px rgba(0,0,0,.8);animation:mIn .15s ease}
+.mhdr{padding:15px 20px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mhdr h3{font-size:14px;font-weight:600;color:var(--text)}
+.mclose{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:4px;transition:color .15s;line-height:1}
+.mclose:hover{color:var(--text)}
+.mbody{padding:18px 20px}
+.mbody label{display:block;font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.mbody input,.mbody select,.mbody textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;resize:vertical}
+.mbody input:focus,.mbody select:focus{border-color:var(--accent)}
+.mbody select option{background:var(--surface)}
+.mfield{margin-bottom:14px}
+.minfo{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:14px}
+.minfo span{color:var(--accent)}
+.mfooter{padding:11px 20px 15px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:'DM Sans',sans-serif}
+.btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.btn-primary:hover{background:#7dd3fc}
+.btn-secondary{background:var(--surface2);color:var(--text-dim);border-color:var(--border)}
+.btn-secondary:hover{border-color:var(--border2);color:var(--text)}
+.btn-danger{background:rgba(248,113,113,.1);color:#f87171;border-color:rgba(248,113,113,.3)}
+.btn-danger:hover{background:rgba(248,113,113,.2);border-color:#f87171}
+.btn-success{background:rgba(52,211,153,.1);color:#34d399;border-color:rgba(52,211,153,.3)}
+.btn-success:hover{background:rgba(52,211,153,.2);border-color:#34d399}
+
+/* CLASSIFICATION */
+.class-wrap{padding:20px 28px;display:flex;flex-direction:column;gap:20px}
+.cs-title{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.cell-row{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s}
+.cell-row:hover{border-color:var(--border2)}
+.cell-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0;margin-top:3px}
+.cell-name{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.cell-desc{font-size:11px;color:var(--text-dim);margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+.badges{display:flex;gap:4px;flex-wrap:wrap}
+.badge{font-size:10px;padding:1px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.badge.human{background:rgba(56,189,248,.12);color:#7dd3fc}
+.badge.mouse{background:rgba(74,222,128,.12);color:#86efac}
+.badge.susp{background:rgba(167,139,250,.12);color:#c4b5fd}
+.badge.adh{background:rgba(251,146,60,.12);color:#fdba74}
+.badge.normal{background:rgba(34,197,94,.12);color:#86efac}
+.badge.disease{background:rgba(248,113,113,.12);color:#fca5a5}
+.badge.tcell{background:rgba(236,72,153,.12);color:#f9a8d4}
+.badge.bcell{background:rgba(99,102,241,.12);color:#a5b4fc}
+.badge.breast{background:rgba(251,191,36,.12);color:#fde68a}
+.badge.other{background:rgba(100,116,139,.12);color:#94a3b8}
+
+#toast{position:fixed;bottom:24px;right:24px;background:#1c2840;border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:8px;font-size:12px;font-family:'JetBrains Mono',monospace;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes vpulse{0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,.5)}50%{box-shadow:0 0 0 3px rgba(56,189,248,0)}}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">
+    <h1>&#10052; CRYO TANK INVENTORY</h1>
+    <p>YEQIAO LAB &middot; LIQUID NITROGEN STORAGE</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="sBoxes">-</div><div class="stat-l">Boxes</div></div>
+    <div class="stat"><div class="stat-v" id="sVials">-</div><div class="stat-l">Vials</div></div>
+    <div class="stat"><div class="stat-v" id="sLines">-</div><div class="stat-l">Cell Lines</div></div>
+  </div>
+  <button class="edit-toggle" id="editBtn" onclick="toggleEdit()">&#9998; Edit Mode</button>
+</header>
+
+<div class="change-bar" id="changeBar">
+  <span id="changeCount">0 unsaved changes</span>
+  <button onclick="doSave()">&#128190; Save</button>
+  <button onclick="doExport()">&#8595; Export CSV</button>
+  <button onclick="doReset()" style="opacity:.7">&#8617; Reset all</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('inv',this)">&#128230; Inventory</button>
+  <button class="tab" onclick="switchTab('cls',this)">&#128300; Cell Line Classification</button>
+</div>
+
+<!-- INVENTORY TAB -->
+<div class="tab-panel active" id="tab-inv">
+  <div class="controls">
+    <div class="sw">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="search" id="searchBox" placeholder="Search cell line, construct, clone..." oninput="doFilter()">
+    </div>
+    <div class="fg">
+      <button class="fb active" onclick="setFilter('all',this)">All</button>
+      <button class="fb ess" onclick="setFilter('ess',this)">&#11088; Essential</button>
+      <button class="fb" onclick="setFilter('filled',this)">Has Cells</button>
+    </div>
+  </div>
+  <div class="legend-bar" id="legendBar"><span class="legend-bar-title">COLOR KEY:</span></div>
+  <div class="results-bar" id="resultsBar">Loading...</div>
+  <div class="boxes-wrap" id="boxesWrap"></div>
+</div>
+
+<!-- CLASSIFICATION TAB -->
+<div class="tab-panel" id="tab-cls">
+  <div class="class-wrap" id="classWrap"></div>
+</div>
+
+</div><!-- /app -->
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="mhdr"><h3 id="mTitle">Edit</h3><button class="mclose" onclick="closeModal()">&#x2715;</button></div>
+    <div class="mbody" id="mBody"></div>
+    <div class="mfooter" id="mFooter"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const CELL_DB = {
+  // ── T-ALL / T-cell ──────────────────────────────────
+  'DND41':      { label:'DND41',      color:'var(--c0)',  species:'human', growth:'suspension', disease:'T-ALL', lineage:'T-cell', note:'Human T-cell acute lymphoblastic leukemia' },
+  'KOPTK1':     { label:'KOPTK1',     color:'var(--c5)',  species:'human', growth:'suspension', disease:'T-ALL', lineage:'T-cell', note:'Human T-ALL cell line' },
+  'CUTLL1':     { label:'CUTLL-1',    color:'var(--c10)', species:'human', growth:'suspension', disease:'T-ALL', lineage:'T-cell', note:'Human T-ALL (CUTLL-1 / Cuttl1)' },
+  'ALL-SIL':    { label:'ALL-SIL',    color:'var(--c9)',  species:'human', growth:'suspension', disease:'T-ALL', lineage:'T-cell', note:'Human T-ALL cell line' },
+  'HPBALL':     { label:'HPBALL',     color:'var(--c4)',  species:'human', growth:'suspension', disease:'T-ALL', lineage:'T-cell', note:'Human T-cell leukemia (DSMZ-certified)' },
+  'TALL-1':     { label:'TALL-1',     color:'var(--c12)', species:'human', growth:'suspension', disease:'T-cell lymphoma', lineage:'T-cell', note:'Human T-cell leukemia/lymphoma' },
+  'Jurkat':     { label:'Jurkat',     color:'var(--c3)',  species:'human', growth:'suspension', disease:'T-cell leukemia', lineage:'T-cell', note:'Jurkat E6-1 human T-cell leukemia' },
+  // ── MCL / B-cell ────────────────────────────────────
+  'Granta519':  { label:'Granta519',  color:'var(--c2)',  species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human mantle cell lymphoma (MCL)' },
+  'Rec1':       { label:'Rec1',       color:'var(--c7)',  species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human mantle cell lymphoma' },
+  'SP49':       { label:'SP49',       color:'var(--c8)',  species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human MCL cell line' },
+  'Mino':       { label:'Mino',       color:'var(--c19)', species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human mantle cell lymphoma' },
+  'JEKO-1':     { label:'JEKO-1',     color:'var(--c13)', species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human MCL cell line' },
+  'MEC1':       { label:'MEC1',       color:'var(--c17)', species:'human', growth:'suspension', disease:'CLL', lineage:'B-cell/CLL', note:'Human chronic lymphocytic leukemia (CLL)' },
+  'PGA1':       { label:'PGA1',       color:'var(--c17)', species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human MCL cell line' },
+  'JVM2':       { label:'JVM2',       color:'var(--c17)', species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Human MCL/B-CLL cell line' },
+  'GM12878':    { label:'GM12878',    color:'var(--c16)', species:'human', growth:'suspension', disease:'normal', lineage:'B-cell', note:'Normal human B-lymphoblastoid (EBV-transformed)' },
+  'NALM16':     { label:'NALM16',     color:'var(--c9)',  species:'human', growth:'suspension', disease:'B-ALL', lineage:'B-cell', note:'Human B-cell acute lymphoblastic leukemia' },
+  'REH':        { label:'REH',        color:'var(--c9)',  species:'human', growth:'suspension', disease:'B-ALL', lineage:'B-cell', note:'Human B-ALL cell line' },
+  // ── Myeloma / plasma ────────────────────────────────
+  'U266':       { label:'U266',       color:'var(--c17)', species:'human', growth:'suspension', disease:'myeloma', lineage:'plasma cell', note:'Human multiple myeloma' },
+  'RPMI 8226':  { label:'RPMI 8226',  color:'var(--c17)', species:'human', growth:'suspension', disease:'myeloma', lineage:'plasma cell', note:'Human multiple myeloma' },
+  'KMS11':      { label:'KMS11',      color:'var(--c17)', species:'human', growth:'suspension', disease:'myeloma', lineage:'plasma cell', note:'Human multiple myeloma' },
+  // ── Breast cancer ───────────────────────────────────
+  'MB157':      { label:'MB157',      color:'var(--c1)',  species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (TNBC)', note:'MDA-MB-157 triple-negative breast cancer' },
+  'MCF7':       { label:'MCF7',       color:'var(--c14)', species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (ER+)', note:'Human breast cancer, ER+' },
+  'MDA-MB-231': { label:'MDA-MB-231', color:'var(--c15)', species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (TNBC)', note:'Human TNBC, highly metastatic' },
+  'MDA-MB-468': { label:'MDA-MB-468', color:'var(--c15)', species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (TNBC)', note:'Human TNBC cell line' },
+  'HCC1599':    { label:'HCC1599',    color:'var(--c6)',  species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (TNBC)', note:'Human TNBC cell line' },
+  'SUM149':     { label:'SUM149',     color:'var(--c18)', species:'human', growth:'adherent', disease:'breast cancer', lineage:'breast (TNBC)', note:'SUM149PT inflammatory breast cancer' },
+  // ── Packaging / HEK ─────────────────────────────────
+  '293T':       { label:'293T',       color:'var(--c11)', species:'human', growth:'adherent', disease:'normal/transformed', lineage:'HEK', note:'HEK293T lentiviral packaging cell line' },
+  'PlatE':      { label:'PlatE',      color:'var(--c20)', species:'mouse', growth:'adherent', disease:'normal/transformed', lineage:'retroviral packaging', note:'Mouse retroviral packaging line (Plat-E)' },
+  // ── Mouse B-cell ─────────────────────────────────────
+  'RAG 1-1':    { label:'RAG 1-1',    color:'var(--c20)', species:'mouse', growth:'suspension', disease:'B-cell', lineage:'mouse B-cell', note:'Mouse B-cell line' },
+  '38B9':       { label:'38B9',       color:'var(--c20)', species:'mouse', growth:'suspension', disease:'pre-B-cell', lineage:'mouse B-cell', note:'Mouse pre-B ALL cell line' },
+  '445*3':      { label:'445*3',      color:'var(--c20)', species:'mouse', growth:'suspension', disease:'B-ALL', lineage:'mouse B-cell', note:'Mouse B-ALL line' },
+  '3-1':        { label:'3-1',        color:'var(--c20)', species:'mouse', growth:'suspension', disease:'B-ALL', lineage:'mouse B-cell', note:'Mouse B-ALL line' },
+  '5194':       { label:'5194',       color:'var(--c20)', species:'mouse', growth:'suspension', disease:'B-ALL', lineage:'mouse B-cell', note:'Mouse B-cell lymphoma line' },
+  'A70':        { label:'A70',        color:'var(--c20)', species:'mouse', growth:'suspension', disease:'B-cell', lineage:'mouse B-cell', note:'Mouse B-cell line' },
+  // ── Primary / misc ───────────────────────────────────
+  'primary MCL PBMC': { label:'Primary MCL PBMC', color:'var(--c13)', species:'human', growth:'suspension', disease:'MCL', lineage:'primary', note:'Patient-derived MCL PBMCs' },
+  'RL-MCL-14':  { label:'RL-MCL-14',  color:'var(--c13)', species:'human', growth:'suspension', disease:'MCL', lineage:'primary', note:'Primary MCL sample #8419' },
+  'MMIS':       { label:'MMIS',       color:'var(--c17)', species:'human', growth:'suspension', disease:'myeloma', lineage:'plasma cell', note:'Human multiple myeloma' },
+  'HB11i19':    { label:'HB11i19',    color:'var(--c19)', species:'human', growth:'suspension', disease:'unknown', lineage:'unknown', note:'Sent to Ilias' },
+  'Millipore CCMCL1': { label:'CCMCL1', color:'var(--c13)', species:'human', growth:'suspension', disease:'MCL', lineage:'B-cell/MCL', note:'Millipore CCMCL1 MCL line' },
+};
+
+
+const RAW = `MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,MB157KRABdCas9 4puro,Box1,,Essential Box 1,MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157
+MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,MB157KRABdCas9 mCherry unsort,,,STR tested parental,MCF7,MCF7,MCF7,MCF7,MCF7,MCF7,MCF7,MCF7,MCF7
+MB157pINDMYC p5,MB157pINDMYC p5,MB157pINDMYC p5,MB157pINDMYC p5,MB157pINDMYC p5,MB157pINDMYC p5,,,,,,,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599
+MB157pIndEBF1,MB157pIndEBF1,MB157pIndEBF1,MB157pIndEBF1,,MB157pIndEBF1,,,,,,,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41
+MB157pIndLEF1,MB157pIndLEF1,MB157pIndLEF1,MB157pIndLEF1,,,MB157pIndTCF1,MB157pIndTCF1,,,,,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock
+MB157-lucif unsorted,MB157-lucif unsorted,MB157-lucif unsorted,MB157-lucif unsorted,MB157-lucif unsorted,,,,,,,,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1,Cuttl-1
+,,,,,,,,,,,,KOPTK1,KOPTK1,KOPTK1,KOPTK1,KOPTK1,KOPTK1,KOPTK1,KOPTK1,KOPTK1
+HCC1599,HCC1599,,,,,,293T,,,,,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL
+,,,,,,,,,,,,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL
+,,,,,,,,,,,,,,,,,,,,
+MB157,MB157,MB157,MB157,MB157,,,,,Box2,,Essential Box 2,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1
+MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 shock 1uM,,,STR tested parental,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1
+MB157 shock 1uM,MB157 shock 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,MB157 elevated 1uM,HCC1599,HCC1599,MB157 shock 1uM,,,,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1
+DND41p elev reverse,DND41 shock reverse,DND41 shock reverse,DND41 shock reverse,DND41 shock reverse,DND41 shock reverse,DND41 shock reverse,DND41 shock reverse,,,,,SP49,SP49,SP49,SP49,SP49,SP49,SP49,SP49,SP49
+Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,,,,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519
+Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,Millipore CCMCL1 p2,,,,Mino,Mino,Mino,Mino,Mino,Mino,Mino,Mino,Mino
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,,,,,JEKO-1,JEKO-1,JEKO-1,JEKO-1,JEKO-1,JEKO-1,JEKO-1,JEKO-1,JEKO-1
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,293T,293T,293T,,,,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV,SUM149 vanilla PV
+,,KOPTK1 JA P3,KOPTK1 JA P3,,,,,,,,,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878
+,,,,,,,,,,,,,,,,,,,,
+HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,HCC1599 shock 25nM,Box3,,Essential Box 3,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9
+HCC1599 p9,HCC1599 p9,HCC1599 p9,HCC1599 p9,,,,,HCC1599 elevated 100nM,,,STR tested Cas9,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro
+HCC1599 P10,HCC1599 P10,HCC1599 P10,HCC1599 P10,HCC1599 P10,HCC1599 P10,,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,,,,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9
+CUTLL-1 SH 0.5,CUTLL-1 SH 0.5,CUTLL-1 SH 0.5,CUTLL-1 SH 0.5,CUTLL-1 SH 0.5,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,,,,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9
+CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,CUTLL-1 SH 1uM,293T,293T,293T,293T,293T,,,,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9
+293T,293T,293T,293T,293T,293T,293T,293T,,,,STR tested rtTA,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test
+293T,293T,293T,293T,293T,293T,293T,,,,,,DND41 sh rtTA 5bla,DND41 sh rtTA 5bla,DND41 sh rtTA 5bla,DND41 sh rtTA 5bla,DND41 sh rtTA 5bla,DND41 sh rtTA 5bla,DND41YZsh rtTA 5bla,DND41YZsh rtTA 5bla,DND41YZsh rtTA 5bla
+Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,Rec1,,,,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test,HPBALL-rtTA STR test
+,,,,,,,,,,,,Jurkat rtTA EBF1,Jurkat rtTA EBF1,Jurkat rtTA,Jurkat rtTA,Jurkat rtTA,Jurkat rtTA,Jurkat rtTA,Jurkat rtTA,Jurkat rtTA
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,Box4,,Essential Box 4,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9
+KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,,,Modified,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9,SP49 lucif Cas9
+KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,KOPTK1 SHOCK,,,,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1,293T Caspex all-in-1
+,,,,,,,,,,,,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2,Jurkat dCas9APEX2
+,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,,,,,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2,Granta dCas9APEX2
+Cuttl-1,,,,,,,,,,,,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex
+,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,,,,,,,,,,
+,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231,MDA-MB-231
+DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468,MDA-MB-468
+pInducer20 EBF1 dC/dIPT Flag,,,,,,,,,Box5,,,,,,,,,,,
+Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,,,Essential Box 5,Clone 20,Clone 20,Clone 20,Clone 20,Clone 20,Clone 20,Clone 20,Clone 20,Clone 20
+Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,Jurkat pInd20 EBF1 dC Flag,,,Granta519 FKBP KI,Clone 26,Clone 26,Clone 26,Clone 26,Clone 26,Clone 26,Clone 26,Clone 26,Clone 26
+MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,,,,Clone 27,Clone 27,Clone 27,Clone 27,Clone 27,Clone 27,Clone 27,Clone 27,Clone 27
+MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,MB157 pInd20 EBF1 dC Flag,,,,Clone 29,Clone 29,Clone 29,Clone 29,Clone 29,Clone 29,Clone 29,Clone 29,Clone 29
+Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,,,,Clone 30,Clone 30,Clone 30,Clone 30,Clone 30,Clone 30,Clone 30,Clone 30,Clone 30
+Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,Jurkat pInd20 EBF1 dIPT Flag,,,,Clone 34,Clone 34,Clone 34,Clone 34,Clone 34,Clone 34,Clone 34,Clone 34,Clone 34
+Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,,,,Clone 36,Clone 36,Clone 36,Clone 36,Clone 36,Clone 36,Clone 36,Clone 36,Clone 36
+Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dIPT Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,,,,Clone 37,Clone 37,Clone 37,Clone 37,Clone 37,Clone 37,Clone 37,Clone 37,Clone 37
+Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,Grant519cl27 pInd20 EBF1 dC Flag,,,,Clone 38,Clone 38,Clone 38,Clone 38,Clone 38,Clone 38,Clone 38,Clone 38,Clone 38
+,,,,,,,,,,,,,,,,,,,,
+DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,DND41 shock Birgit,Box6,,Essential Box 6,Clone 41,Clone 41,Clone 41,Clone 41,Clone 41,Clone 41,Clone 41,Clone 41,Clone 41
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,,,,Granta519 FKBP KI,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,,,,,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44
+DND41 shock,DND41 shock,DND41 shock,,,,,,,,,,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46
+,,,DND41,DND41,DND41,DND41,DND41,DND41,,,,clone 56,clone 56,clone 56,clone 56,clone 56,clone 56,clone 56,clone 56,clone 56
+DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,Clone 95,Clone 95,Clone 95,Clone 95,Clone 95,Clone 95,Clone 95,Clone 95,Clone 95
+,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,Clone 97,Clone 97,Clone 97,Clone 97,Clone 97,Clone 97,Clone 97,Clone 97,Clone 97
+DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,DND41 lucif Cas9,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Box7,,,,,,,,,,,
+Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,Jurkat pInd20 EBF1 dC,,,,,,,,,,,,,
+Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,,,,,,,,,,,,
+Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,Jurkat pInd20 EBF1 wt,,,,,,,,,,,,,
+Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,,,,,,,,,,,,
+Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,,,,,,,,,,,,
+Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,Jurkat rtTA mEbf1 WT,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Box8,,,,,,,,,,,
+Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,Jurkat pInd20 EBF1 WT flag,,,,,,,,,,,,
+Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,,,,,,,,,,,,
+Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,Grantacl27 EBF1 WT flag,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,Box9,,,,,,,,,,,
+GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,,,,,,,,,,,,,
+,,primary MCL PBMC,primary MCL PBMC,primary MCL PBMC,primary MCL PBMC,,,,,,,,,,,,,,,
+JEKO-1 lucif Cas9,JEKO-1 lucif Cas9,primary MCL PBMC,primary MCL PBMC,primary MCL PBMC,primary MCL PBMC,,JEKO-1 lucif Cas9,,,,,,,,,,,,,
+,,RL-MCL-14 #8419,RL-MCL-14 #8419,RL-MCL-14 #8419,RL-MCL-14 #8419,,,,,,,,,,,,,,,
+GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,GRANTA519 lucif Cas9,,,,,,,,,,,,,
+,,,,,GRANTA519,GRANTA519,GRANTA519,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Box10,,,,,,,,,,,
+Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Jurkat E Cas9 1puro,Granta519 Cas9,,2020-08-02,,,,,,,,,,,
+,,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,,STR tested Sep 2020,,,,,,,,,,,
+,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,,,,,,,,,,,,
+,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,DND41 shock Cas9,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,Box11,,,,,,,,,,,
+,,,,,,,,,2020-09-05,,,,,,,,,,,
+DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,STR tested Sep 2020,,,,,,,,,,,
+DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,,,,,,,,,,,,
+DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,,,,,,,,,,,,
+DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,DND41 Cas9 1 puro,,,,,,,,,,,,,,,,,
+SP49 Cas9,SP49 Cas9,SP49 Cas9,JEKO-1 Cas9,,,,,,,,,,,,,,,,,
+Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+DND41 shock,DND41 shock,,,,,,,,Box12,,,,,,,,,,,
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,2020-09-05,,,,,,,,,,,
+DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,DND41 shock,STR tested Sep 2020,,,,,,,,,,,
+DND41,DND41,DND41,DND41,DND41 shock Rev,DND41 shock Rev,DND41 shock Rev,DND41 shock Rev,DND41 shock Rev,,,,,,,,,,,,
+DND41,DND41,DND41,DND41,,,,,,,,,,,,,,,,,
+DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,DND41,,,,,,,,,,,,
+RAG 1-1 ,RAG 1-1 ,NALM16,NALM16,NALM16,38B9,445*3,445*3,445*3,Mouse B cell lines / B-ALL,,,,,,,,,,,
+REH,HB11i19 (to Ilias),A70,MMIS,U266,RPMI 8226,KMS11,5194,3-1,,,,,,,,,,,,
+DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,DND41-rtTA STR test,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Box13,,,,,,,,,,,
+Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,Jurkat E6-1,2020-11-12,,,,,,,,,,,
+Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,,,,,,,,,,,,
+,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,,,,,,,,,,,,
+,,,,,,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,Jurkat E6-1 Cas9,,,,,,,,,,,,
+293T,293T,293T,293T,293T,293T,,,,,,,,,,,,,,,
+Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat dCas9mCh uns,Jurkat E6-1,,validated,,,,,,,,,,,
+Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat Cas9mCh uns,Jurkat E6-1,,,,,,,,,,,,,
+Granta dCas9mCh uns,Granta dCas9mCh uns,Granta dCas9mCh uns,Granta dCas9mCh uns,Granta dCas9mCh uns,Granta dCas9mCh uns,Granta dCas9mCh uns,Jurkat E6-1,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,DND41 JP p3,Box14,,,,,,,,,,,
+DND41 JP GSI,DND41 JP GSI,DND41 JP GSI,DND41 JP GSI,DND41 JP GSI,DND41 JP GSI,DND41 JP GSI,,,2020-12-31,,,,,,,,,,,
+DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,,,,,,,,,,,,,
+DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,DND41 YZ GSI,,,,,,,,,,,,
+DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,,,,,,,,,,,,
+DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,DND41 YZ GSI Cas9,,,,,,,,,,,,
+DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,DND41rtTAEBF1,,,,,,,,,,,,
+DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,,,,,,,,,,,,
+DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,DND41 comp#1 +GSI,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,Box15,,,,,,,,,,,
+HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,DSMZ original vial,,,,,,,,,,,
+HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,,,,,,,,,,,,
+HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,HPBALL,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,HPBALL Cas9,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,Box16,,,,,,,,,,,
+,,,,,,DND41YZsh rtTA 5bla,DND41YZsh rtTA 5bla,DND41YZsh rtTA 5bla,,,,,,,,,,,,
+Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,Granta rtTA,,,,,,,,,,,,
+Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,Granta519 Cas9,,,,,,,,,,,,
+Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,Granta519 rtTA,,,,,,,,,,,,
+DND41 rtTA,DND41 rtTA,DND41 rtTA,DND41 rtTA,DND41 rtTA,DND41 rtTA,,,,,,,,,,,,,,,
+Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,Jurkat rtTA TRE3G EBF1,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+MB157 rtTA 20bla,MB157 rtTA 20bla,MB157 rtTA 20bla,MB157 rtTA 20bla,HCC1599,HCC1599,HCC1599,HCC1599,HCC1599,Box17,,,,,,,,,,,
+HCC1599,,,,,,,,,,,,,,,,,,,,,
+HCC1599,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,MB157 dCas9Apex,,,,,,,,,,,,
+HCC1599,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,MB157 dCas9Apex #1,,,,,,,,,,,,
+HCC1599,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,MB157 dCas9Apex #2,,,,,,,,,,,,
+HCC1599,,,,,,,,,,,,,,,,,,,,
+293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,,,,,,,,,,,,
+293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,293T dCas9Apex allIn1,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,Box19,,,,,,,,,,,
+HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,HPBALL-TRE3G-EBF1,EBF1,,,,,,,,,,,
+Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,Jurkat-TRE3G-EBF1,,,,,,,,,,,,
+,,,Cuttl1,Cuttl1,Cuttl1,Cuttl1,Cuttl1,Cuttl1,,,,,,,,,,,,
+KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,KOPTK1p21EBF1,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,Cuttl1-TRE3G-EBF1,,,,,,,,,,,,
+KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,KOPTK1-TRE3G-EBF1,,,,,,,,,,,,
+ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,ALL-SIL,Box20,,,,,,,,,,,
+ALL-SIL,ALL-SIL,ALL-SIL,,,TALL-1,TALL-1,TALL-1,TALL-1,DND41 GSI time course for revision,,,,,,,,,,,
+TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,TALL-1,,,,,,,,,,,,
+GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,,,,,,,,,,,,
+GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,GSI #5-8 week 6-8,,,,,,,,,,,,
+GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,GSI#9-11,,,,,,,,,,,,
+,,,,,,GSI#7 week8,GSI#7 week8,GSI#7 week8,,,,,,,,,,,,
+Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Box21,,,,,,,,,,,
+Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,Granta519,,,,,,,,,,,,
+Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,,,,,,,,,,,,
+Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Granta519Cas9,Clone 34,,,,,,,,,,,,
+clone 30,clone 30,clone 30,Clone 34,clone 29,clone 29,clone 29,clone 30,clone 36,,,,,,,,,,,,
+clone 34,clone 34,clone 34,clone 36,clone 30,clone 30,clone 30,clone 30,clone 36,,,,,,,,,,,,
+,,,,,,,clone 36,,,,,,,,,,,,,
+Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,,,,,,,,,,,,
+Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,,,,,,,,,,,,,
+,,,,,,,,,Box22,,,,,,,,,,,
+Granta519_cl27_pInd20EBF1_dC,Granta519_cl27_pInd20EBF1_dC,,Granta519_cl27_pInd20EBF1_dC,,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,,,,,,,,,,,,
+Granta519_cl27_pInd20EBF1_dC,Granta519_cl27_pInd20EBF1_dC,,Granta519_cl27_pInd20EBF1_dC,,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,,,,,,,,,,,,
+Granta519_cl27_pInd20EBF1_dC,Granta519_cl27_pInd20EBF1_dC,,Granta519_cl27_pInd20EBF1_dC,,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,Jurkat-rtTA-mEbf1-G418,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,,,Box23,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,Jurkat TRE3G mEBF1 dIPT,,,,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,,,,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,Jurkat TRE3G mEBF1 dC,,,,,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,,,,,,,,,,,,,,,
+Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,Jurkat TRE3G mEBF1 dPLD,,,,,,,,,,,,,,
+293T,293T,293T,293T,293T,293T,,,,,,,,,,,,,,,
+PlatE,PlatE,PlatE,PlatE,PlatE,PlatE,,,,,,,,,,,,,,,
+PlatE,PlatE,PlatE,PlatE,PlatE,PlatE,PlatE,,,,,,,,,,,,,,
+Mec1 Cas9,,,,,,,,,Box24,,,,,,,,,,,
+JVM2 Cas9,,,,,,,,,,,,,,,,,,,,
+Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,,,,,,,,,,,,,
+Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,Granta519 cl27 rtTA mEbf1 WT 2G418,,,,,,,,,,,,,,
+Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,,,,,,,,,,,,,
+Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,Granta519 cl97 rtTA mEbf1 WT 2G418,,,,,,,,,,,,,,
+MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,MB157 mEbf1 WT,,Box25,,,,,,,,,,,
+MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,MB157 mEbf1 dC,,,,,,,,,,,,,
+MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,MB157 mEbf1 dPLD,,,,,,,,,,,,,
+MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,MB157 mEbf1 dIPT,,,,,,,,,,,,
+,,MB157,MB157,MB157,MB157,MB157,MB157,,,,,,,,,,,,,
+MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,,,,,,,,,,,,,
+MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,,,,,,,,,,,,
+MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,MB157 pInd hEBF1 wt,,,,,,,,,,,,
+MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,MB157 pInd hEBF1 dC,,,,,,,,,,,,
+Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Box26,,,,,,,,,,,
+Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,,,,,,,,,,,,
+Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,Grata519,,,,,,,,,,,,
+Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,,,,,,,,,,,,
+Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,Granta519dCas9APEX2,,,,,,,,,,,,
+MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,,,,,,,,,,,,
+MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,MB157,,,,,,,,,,,,
+clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,clone 42,,Box27,,,,,,,,,,,
+clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,clone 44,,,,,,,,,,,,,
+,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,clone 46,,,,,,,,,,,,
+clone 20,clone 20,clone 20,clone 20,clone 20,clone 20,clone 20,clone 20,clone 20,,,,,,,,,,,,
+clone 34,clone 34,clone 34,clone 34,clone 34,clone 34,clone 34,clone 20,clone 20,,,,,,,,,,,,
+clone 34,clone 34,clone 34,clone 34,clone 34,,,,,,,,,,,,,,,,
+clone 38,clone 38,clone 38,clone 38,clone 38,clone 38,clone 38,clone 38,clone 38,,,,,,,,,,,,
+clone 38,clone 38,,,,,clone 36,clone 36,clone 36,,,,,,,,,,,,
+clone 36,clone 36,clone 36,clone 36,clone 36,clone 36,clone 36,clone 36,clone 36,,,,,,,,,,,,
+KOPTK1 pInd EBF1,,,,,,,,,Box28,,,,,,,,,,,
+KOPTK1 pInd EBF1,,,,,,,,,,,,,,,,,,,,
+KOPTK1 pInd EBF1,,,,,,,,,,,,,,,,,,,,
+DND41,,,,,,,,,,,,,,,,,,,,
+DND41,,,,,,,,,,,,,,,,,,,,
+DND41,,,,,,,,,,,,,,,,,,,,
+DND41,,,,,,,,,,,,,,,,,,,,
+Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,Rec1 EBF1 FKBP 10bla unsorted,,,,,,,,,,,,
+Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Box28,,,,,,,,,,,
+Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,Granta519 cl27 RAD21 Halo unsorted,,,,,,,,,,,,,,,
+Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,,,,,,,,,,,,,,,,,
+Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,,,,,,,,,,,,,,,,,
+Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,,,,,,,,,,,,,,,,,
+Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,Rec1 EBF1 FKBP KI unsorted,,,,,,,,,,,,,,,,,
+GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,Box29,,,,,,,,,,,
+GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,GM12878,,,,,,,,,,,,
+Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,,,,,,,,,,,,,
+Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,Granta519 EBF1 KI clone 44,,,,,,,,,,,,
+Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,Granta519 EBF1 KI clone 55,,,,,,,,,,,,
+Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,,,,,,,,,,,,
+Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,Granta519 EBF1 KI clone 29,,,,,,,,,,,,
+Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,,,,,,,,,,,,,
+Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,,,,,,,,,,,,,
+SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,SP49 STR tested,Box30,,,,,,,,,,,
+Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,,,,,,,,,,,,
+,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,Granta519 EBF1 KI clone 27,,,,,,,,,,,,
+,,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,,,,,,,,,,,,,
+,,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,Granta519 EBF1 KI clone 97,,,,,,,,,,,,,
+Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,,,,,,,,,,,,
+Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,Granta519 EBF1 KI clone 95,,,,,,,,,,,,
+Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Box31,,,,,,,,,,,
+Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,Granta519cl27 TRE3G mEbf1 WT,,,,,,,,,,,,
+Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,,,,,,,,,,,,
+Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,Granta519cl27 TRE3G mEbf1 dPLD,,,,,,,,,,,,
+MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,Box32,,,,,,,,,,,
+MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,,,,,,,,,,,,
+MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,MEC1,,,,,,,,,,,,
+PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,,,,,,,,,,,,
+PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,,,,,,,,,,,,
+PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,PGA1,,,,,,,,,,,,
+JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,,,,,,,,,,,,
+JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,,,,,,,,,,,,
+JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,JVM2,,,,,,,,,,,,
+MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,Box33,,,,,,,,,,,
+MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,,,,,,,,,,,,
+MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,MEC1 Cas9,,,,,,,,,,,,
+PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,,,,,,,,,,,,
+PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,,,,,,,,,,,,
+PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,PGA1 Cas9,,,,,,,,,,,,
+JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,,,,,,,,,,,,
+JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,,,,,,,,,,,,
+JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,JVM2 Cas9,,,,,,,,,,,,
+,,,,,,,,,Box34,,,,,,,,,,,
+Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Box35,,,,,,,,,,,
+Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,Rec1 EBF1 FKBP ,,,,,,,,,,,,
+Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,,,,,,,,,,,,
+Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,Granta519 RAD21 Halo V1,,,,,,,,,,,,
+Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,Granta519 double #18 6E4,,,,,,,,,,,,
+Granta519 double #18 6E4,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,Granta519 double #22 6D7,,,,,,,,,,,,
+Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #22 6D7,Granta519 double #22 6D7,,,,,,,,,,,,
+Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #23 7D3,Granta519 double #44 6G8,Granta519 double #44 6G8,,,,,,,,,,,,
+Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #33 6C2,Granta519 double #44 6G8,Granta519 double #44 6G8,Granta519 double #44 6G8,Granta519 double #44 6G8,Granta519 double #44 6G8,,,,,,,,,,,,`;
+
+
+// ── PARENT MATCHING ──────────────────────────────────
+const MATCH_RULES = [
+  ['primary mcl pbmc','primary MCL PBMC'],['rl-mcl-14','RL-MCL-14'],
+  ['millipore ccmcl1','Millipore CCMCL1'],['mda-mb-231','MDA-MB-231'],
+  ['mda-mb-468','MDA-MB-468'],['rpmi 8226','RPMI 8226'],['sum149','SUM149'],
+  ['hcc1599','HCC1599'],['grantacl27','Granta519'],['granta519','Granta519'],
+  ['granta dca','Granta519'],['grata519','Granta519'],['grant519','Granta519'],
+  ['granta','Granta519'],['hpball','HPBALL'],['koptk1','KOPTK1'],
+  ['cutll','CUTLL1'],['cuttl','CUTLL1'],['all-sil','ALL-SIL'],
+  ['tall-1','TALL-1'],['dnd41','DND41'],['jurkat','Jurkat'],
+  ['jeko-1','JEKO-1'],['mb157','MB157'],['mcf7','MCF7'],['rec1','Rec1'],
+  ['sp49','SP49'],['mino','Mino'],['mec1','MEC1'],['pga1','PGA1'],
+  ['jvm2','JVM2'],['gm12878','GM12878'],['nalm16','NALM16'],['reh','REH'],
+  ['u266','U266'],['kms11','KMS11'],['plat','PlatE'],['293t','293T'],
+  ['rag 1','RAG 1-1'],['38b9','38B9'],['445*3','445*3'],['3-1','3-1'],
+  ['5194','5194'],['a70','A70'],['hb11i19','HB11i19'],['mmis','MMIS'],
+];
+function matchParent(val) {
+  if (!val) return null;
+  const v = val.toLowerCase().trim();
+  for (const [pat, key] of MATCH_RULES) if (v.includes(pat)) return key;
+  return null;
+}
+function cellColor(val) {
+  const k = matchParent(val);
+  return (k && CELL_DB[k]) ? CELL_DB[k].color : null;
+}
+
+// ── CSV PARSE ────────────────────────────────────────
+function parseCSV(raw) {
+  return raw.trim().split('\n').map(line => {
+    const cols = []; let cur = '', inQ = false;
+    for (const c of line) {
+      if (c === '"') { inQ = !inQ; }
+      else if (c === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    cols.push(cur.trim());
+    return cols;
+  });
+}
+
+function extractBoxes(rows) {
+  const boxes = {}, rowAt = {};
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    if (row[9] && /^Box\d+$/.test(row[9]) && !boxes[row[9]]) {
+      boxes[row[9]] = { id:row[9], note:row[10]||'', essential:false, rows:[] };
+      rowAt[row[9]] = r;
+    }
+    if (row[11] && row[11].startsWith('Essential Box') && !boxes[row[11]]) {
+      boxes[row[11]] = { id:row[11], note:row[12]||'', essential:true, rows:[] };
+      rowAt[row[11]] = r;
+    }
+  }
+  const sortFn = (a,b) => parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,''));
+  const leftIds = Object.keys(boxes).filter(k => /^Box\d+$/.test(k)).sort(sortFn);
+  const essIds  = Object.keys(boxes).filter(k => k.startsWith('Essential')).sort(sortFn);
+  leftIds.forEach((id, bi) => {
+    const s = rowAt[id];
+    const nxt = bi+1 < leftIds.length ? rowAt[leftIds[bi+1]] : rows.length;
+    for (let r = s; r < Math.min(s+9, nxt, rows.length); r++) {
+      boxes[id].rows.push(Array.from({length:9}, (_,c) => (rows[r][c]||'').trim()));
+    }
+  });
+  essIds.forEach((id, bi) => {
+    const s = rowAt[id];
+    const nxt = bi+1 < essIds.length ? rowAt[essIds[bi+1]] : rows.length;
+    for (let r = s; r < Math.min(s+9, nxt, rows.length); r++) {
+      boxes[id].rows.push(Array.from({length:9}, (_,c) => (rows[r][12+c]||'').trim()));
+    }
+  });
+  return boxes;
+}
+
+const parsedBoxes = extractBoxes(parseCSV(RAW));
+
+// ── STATE ────────────────────────────────────────────
+const SKEY = 'cryo_v2';
+let state = {};       // id -> {id, note, essential, rows, deleted}
+let ids = [];         // sorted active ids
+let pending = 0;
+let editMode = false;
+let filterMode = 'all';
+
+function initState() {
+  state = {};
+  Object.entries(parsedBoxes).forEach(([id, b]) => {
+    state[id] = { id, note: b.note, essential: b.essential, deleted: false,
+                  rows: b.rows.map(r => [...r]) };
+  });
+  try {
+    const saved = JSON.parse(localStorage.getItem(SKEY) || '{}');
+    Object.entries(saved).forEach(([id, s]) => {
+      if (state[id]) Object.assign(state[id], s);
+      else state[id] = s;
+    });
+  } catch(e) {}
+  rebuildIds();
+  pending = 0;
+  updateChangeBar();
+}
+
+function rebuildIds() {
+  ids = Object.keys(state)
+    .filter(id => !state[id].deleted)
+    .sort((a,b) => {
+      const ae = a.startsWith('E'), be = b.startsWith('E');
+      if (ae && !be) return -1; if (!ae && be) return 1;
+      return parseInt(a.replace(/\D/g,'')) - parseInt(b.replace(/\D/g,''));
+    });
+}
+
+function dirty() { pending++; updateChangeBar(); }
+
+function updateChangeBar() {
+  const bar = document.getElementById('changeBar');
+  document.getElementById('changeCount').textContent = pending + ' unsaved change' + (pending===1?'':'s');
+  bar.classList.toggle('on', pending > 0);
+}
+
+function doSave() {
+  const diff = {};
+  Object.entries(state).forEach(([id, s]) => {
+    const orig = parsedBoxes[id];
+    if (!orig || s.deleted || s.note !== orig.note ||
+        JSON.stringify(s.rows) !== JSON.stringify(orig.rows)) {
+      diff[id] = { ...s, rows: s.rows.map(r => [...r]) };
+    }
+  });
+  localStorage.setItem(SKEY, JSON.stringify(diff));
+  pending = 0; updateChangeBar();
+  toast('Saved to browser storage');
+}
+
+function doExport() {
+  const lines = [];
+  ids.forEach(id => {
+    state[id].rows.forEach(row => {
+      lines.push(row.map(c => c.includes(',') ? '"'+c+'"' : c).join(','));
+    });
+    lines.push('');
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
+  a.download = 'cryo_export.csv'; a.click();
+}
+
+function doReset() {
+  if (!confirm('Reset ALL changes to original data?')) return;
+  localStorage.removeItem(SKEY);
+  initState(); render(); updateStats();
+  toast('Reset to original');
+}
+
+// ── PASSCODE ─────────────────────────────────────────
+// To change the passcode: run this in your browser console:
+//   setNewPasscode()
+// You will be prompted for the current passcode, then a new one.
+// The new hash is saved to localStorage and takes effect immediately.
+
+const DEFAULT_HASH = '846182c398460222725ca978b785551e7eda4618044e1758eb1f3603670c5c45';
+const PASS_KEY = 'cryo_passcode_hash';
+
+function getHash() {
+  return localStorage.getItem(PASS_KEY) || DEFAULT_HASH;
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPasscode(input) {
+  const h = await sha256(input);
+  return h === getHash();
+}
+
+function showPasscodeModal(onSuccess) {
+  const body = `
+    <div class="mfield">
+      <label>Enter passcode to unlock Edit Mode</label>
+      <input type="password" id="passInput" placeholder="Passcode" autocomplete="off">
+    </div>
+    <div id="passError" style="color:#f87171;font-size:12px;font-family:'JetBrains Mono',monospace;margin-top:-8px;min-height:18px"></div>`;
+  const footer = `
+    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" id="passSubmit" onclick="submitPasscode()">Unlock</button>`;
+  openModal('&#128274; Edit Mode', body, footer);
+  window._passCallback = onSuccess;
+  setTimeout(() => {
+    const inp = document.getElementById('passInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitPasscode(); });
+    }
+  }, 60);
+}
+
+async function submitPasscode() {
+  const inp = document.getElementById('passInput');
+  const err = document.getElementById('passError');
+  const btn = document.getElementById('passSubmit');
+  if (!inp) return;
+  btn.disabled = true;
+  btn.textContent = 'Checking...';
+  const ok = await checkPasscode(inp.value);
+  if (ok) {
+    closeModal();
+    if (window._passCallback) window._passCallback();
+  } else {
+    err.textContent = 'Incorrect passcode.';
+    inp.value = '';
+    inp.focus();
+    btn.disabled = false;
+    btn.textContent = 'Unlock';
+  }
+}
+
+async function setNewPasscode() {
+  const current = prompt('Enter current passcode:');
+  if (current === null) return;
+  const ok = await checkPasscode(current);
+  if (!ok) { alert('Incorrect current passcode.'); return; }
+  const newPass = prompt('Enter new passcode:');
+  if (!newPass) return;
+  const confirm = prompt('Confirm new passcode:');
+  if (newPass !== confirm) { alert('Passcodes do not match.'); return; }
+  const newHash = await sha256(newPass);
+  localStorage.setItem(PASS_KEY, newHash);
+  alert('Passcode updated successfully.');
+}
+
+// ── EDIT MODE ────────────────────────────────────────
+function toggleEdit() {
+  if (editMode) {
+    // Turning off — no passcode needed
+    editMode = false;
+    document.body.classList.remove('edit');
+    const btn = document.getElementById('editBtn');
+    btn.classList.remove('on');
+    btn.innerHTML = '&#9998; Edit Mode';
+    render();
+  } else {
+    // Turning on — require passcode
+    showPasscodeModal(() => {
+      editMode = true;
+      document.body.classList.add('edit');
+      const btn = document.getElementById('editBtn');
+      btn.classList.add('on');
+      btn.innerHTML = '&#x2715; Exit Edit';
+      render();
+      toast('Edit mode unlocked');
+    });
+  }
+}
+
+// ── MODAL ────────────────────────────────────────────
+function openModal(title, body, footer) {
+  document.getElementById('mTitle').textContent = title;
+  document.getElementById('mBody').innerHTML = body;
+  document.getElementById('mFooter').innerHTML = footer;
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(() => {
+    const el = document.querySelector('#mBody input, #mBody textarea');
+    if (el) { el.focus(); if(el.select) el.select(); }
+  }, 60);
+}
+function closeModal() { document.getElementById('overlay').classList.remove('on'); }
+function bgClose(e) { if (e.target === document.getElementById('overlay')) closeModal(); }
+
+// ── VIAL MODAL ───────────────────────────────────────
+const ROW_LABELS = 'ABCDEFGHI';
+
+function vialClick(boxId, ri, ci) {
+  if (!editMode) return;
+  const content = (state[boxId].rows[ri] && state[boxId].rows[ri][ci]) || '';
+  const pos = ROW_LABELS[ri] + (ci+1);
+  const body = `
+    <div class="minfo">Box: <span>${boxId}</span> &nbsp;&middot;&nbsp; Position: <span>${pos}</span></div>
+    <div class="mfield"><label>Cell line / content</label>
+    <input type="text" id="vialVal" value="${content.replace(/"/g,'&quot;')}" placeholder="Enter cell line, or clear to remove"></div>`;
+  const footer = (content ? `<button class="btn btn-danger" onclick="removeVial('${boxId}',${ri},${ci})">Remove</button>` : '') +
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="saveVial('${boxId}',${ri},${ci})">Save</button>`;
+  openModal(content ? 'Edit vial ' + pos : 'Add vial at ' + pos, body, footer);
+  setTimeout(() => {
+    const el = document.getElementById('vialVal');
+    if (el) el.onkeydown = e => { if(e.key==='Enter') saveVial(boxId,ri,ci); if(e.key==='Escape') closeModal(); };
+  }, 70);
+}
+
+function saveVial(boxId, ri, ci) {
+  const val = document.getElementById('vialVal').value.trim();
+  while (state[boxId].rows.length <= ri) state[boxId].rows.push(Array(9).fill(''));
+  state[boxId].rows[ri][ci] = val;
+  dirty(); closeModal(); render(); updateStats();
+}
+
+function removeVial(boxId, ri, ci) {
+  state[boxId].rows[ri][ci] = '';
+  dirty(); closeModal(); render(); updateStats();
+  toast('Vial removed');
+}
+
+// ── BOX OPERATIONS ───────────────────────────────────
+function boxRenameModal(boxId) {
+  const b = state[boxId];
+  const body = `
+    <div class="mfield"><label>Box ID</label>
+    <input type="text" id="newId" value="${boxId}"></div>
+    <div class="mfield"><label>Note</label>
+    <input type="text" id="newNote" value="${b.note||''}" placeholder="Optional description"></div>
+    <div class="mfield"><label>Type</label>
+    <select id="newEss">
+      <option value="0" ${!b.essential?'selected':''}>Main Tank</option>
+      <option value="1" ${b.essential?'selected':''}>Essential Storage</option>
+    </select></div>`;
+  const footer = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-primary" onclick="saveBoxMeta('${boxId}')">Save</button>`;
+  openModal('Edit box: ' + boxId, body, footer);
+}
+
+function saveBoxMeta(oldId) {
+  const newId = document.getElementById('newId').value.trim();
+  const note = document.getElementById('newNote').value.trim();
+  const essential = document.getElementById('newEss').value === '1';
+  if (!newId) return;
+  if (newId !== oldId) {
+    if (state[newId] && !state[newId].deleted) { toast('ID already exists'); return; }
+    state[newId] = { ...state[oldId], id:newId, note, essential };
+    delete state[oldId];
+    rebuildIds();
+  } else {
+    state[oldId].note = note;
+    state[oldId].essential = essential;
+  }
+  dirty(); closeModal(); render();
+  toast('Box updated');
+}
+
+function confirmDelete(boxId) {
+  const body = `<p style="color:var(--text-dim);font-size:14px;line-height:1.6">Delete <strong style="color:var(--text)">${boxId}</strong> and all its vials?</p>`;
+  const footer = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-danger" onclick="deleteBox('${boxId}')">Delete</button>`;
+  openModal('Delete ' + boxId + '?', body, footer);
+}
+
+function deleteBox(boxId) {
+  state[boxId].deleted = true;
+  rebuildIds(); dirty(); closeModal(); render(); updateStats();
+  toast(boxId + ' deleted');
+}
+
+function addBoxModal() {
+  const nums = Object.keys(state).filter(k=>/^Box\d+$/.test(k)).map(k=>parseInt(k.slice(3)));
+  const next = nums.length ? Math.max(...nums)+1 : 1;
+  const body = `
+    <div class="mfield"><label>Box ID</label><input type="text" id="newId" value="Box${next}"></div>
+    <div class="mfield"><label>Note</label><input type="text" id="newNote" value="" placeholder="Optional"></div>
+    <div class="mfield"><label>Type</label><select id="newEss">
+      <option value="0">Main Tank</option><option value="1">Essential Storage</option>
+    </select></div>`;
+  const footer = `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-success" onclick="addBox()">Add box</button>`;
+  openModal('Add new box', body, footer);
+}
+
+function addBox() {
+  const id = document.getElementById('newId').value.trim();
+  const note = document.getElementById('newNote').value.trim();
+  const essential = document.getElementById('newEss').value === '1';
+  if (!id) return;
+  if (state[id] && !state[id].deleted) { toast('ID already exists'); return; }
+  state[id] = { id, note, essential, deleted:false, rows:Array.from({length:9},()=>Array(9).fill('')) };
+  rebuildIds(); dirty(); closeModal(); render(); updateStats();
+  toast(id + ' added');
+}
+
+// ── INLINE BOX EDITING ───────────────────────────────
+function commitId(input, oldId) {
+  const newId = input.value.trim();
+  if (!newId || newId === oldId) { input.value = oldId; return; }
+  if (state[newId] && !state[newId].deleted) { toast('ID already exists'); input.value = oldId; return; }
+  state[newId] = { ...state[oldId], id: newId };
+  delete state[oldId];
+  rebuildIds(); dirty();
+  toast('Renamed to ' + newId);
+  render(); updateStats();
+}
+
+function commitNote(input, boxId) {
+  if (!state[boxId]) return;
+  const note = input.value.trim();
+  if (note === (state[boxId].note || '')) return;
+  state[boxId].note = note;
+  dirty();
+}
+
+// ── RENDER ───────────────────────────────────────────
+function render() {
+  const wrap = document.getElementById('boxesWrap');
+  wrap.innerHTML = '';
+  const q = document.getElementById('searchBox').value.toLowerCase().trim();
+  let visible = 0;
+
+  ids.forEach(id => {
+    const b = state[id];
+    const allV = b.rows.flat().filter(v => v);
+    const filled = allV.length;
+    const total = b.rows.reduce((s,r) => s+r.length, 0) || 81;
+    const pct = Math.round(filled/total*100);
+
+    const matchQ = !q || allV.some(v => v.toLowerCase().includes(q)) || id.toLowerCase().includes(q);
+    const matchF = filterMode==='all' || (filterMode==='ess'&&b.essential) || (filterMode==='filled'&&filled>0);
+    if (!matchQ || !matchF) return;
+    visible++;
+
+    const card = document.createElement('div');
+    card.className = 'box-card' + (b.essential?' ess':'');
+    card.style.animationDelay = (visible * 0.02) + 's';
+
+    // Header
+    const hdr = document.createElement('div');
+    hdr.className = 'box-hdr';
+
+    if (editMode) {
+      const idInp = document.createElement('input');
+      idInp.type = 'text';
+      idInp.value = id;
+      idInp.className = 'box-id-input';
+      idInp.title = 'Edit box ID';
+      idInp.addEventListener('blur', () => commitId(idInp, id));
+      idInp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') idInp.blur();
+        if (e.key === 'Escape') { idInp.value = id; idInp.blur(); }
+      });
+      idInp.addEventListener('click', e => e.stopPropagation());
+
+      const noteInp = document.createElement('input');
+      noteInp.type = 'text';
+      noteInp.value = b.note || '';
+      noteInp.className = 'box-note-input';
+      noteInp.placeholder = 'Add note...';
+      noteInp.addEventListener('blur', () => commitNote(noteInp, id));
+      noteInp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') noteInp.blur();
+        if (e.key === 'Escape') { noteInp.value = b.note||''; noteInp.blur(); }
+      });
+      noteInp.addEventListener('click', e => e.stopPropagation());
+
+      const cnt = document.createElement('div');
+      cnt.className = 'box-cnt';
+      cnt.textContent = filled + '/' + total;
+
+      hdr.appendChild(idInp);
+      hdr.appendChild(noteInp);
+      hdr.appendChild(cnt);
+    } else {
+      const tag = document.createElement('div');
+      tag.className = 'box-tag';
+      tag.textContent = id;
+
+      const name = document.createElement('div');
+      name.className = 'box-note-text';
+      name.textContent = b.note ? '\uD83D\uDCDD ' + b.note : (b.essential ? '\u2B50 Essential Storage' : 'Main Tank');
+
+      const cnt = document.createElement('div');
+      cnt.className = 'box-cnt';
+      cnt.textContent = filled + '/' + total;
+
+      hdr.appendChild(tag);
+      hdr.appendChild(name);
+      hdr.appendChild(cnt);
+    }
+    card.appendChild(hdr);
+
+    // Fill bar
+    const fr = document.createElement('div');
+    fr.className = 'fill-row';
+    fr.innerHTML = '<span>' + pct + '% filled</span><span>' + filled + ' vials</span>';
+    card.appendChild(fr);
+
+    const fb = document.createElement('div');
+    fb.className = 'fill-bar';
+    fb.innerHTML = '<div class="fill-inner" style="width:' + pct + '%"></div>';
+    card.appendChild(fb);
+
+    // Col labels
+    const cl = document.createElement('div');
+    cl.className = 'col-lbls';
+    for (let i=1;i<=9;i++) { const d=document.createElement('div'); d.className='col-lbl'; d.textContent=i; cl.appendChild(d); }
+    card.appendChild(cl);
+
+    // Vial grid
+    const grid = document.createElement('div');
+    grid.className = 'vgrid';
+    for (let ri=0; ri<9; ri++) {
+      for (let ci=0; ci<9; ci++) {
+        const content = (b.rows[ri] && b.rows[ri][ci] || '').trim();
+        const vial = document.createElement('div');
+        vial.className = 'vial ' + (content ? 'filled' : 'empty');
+        if (content) {
+          const col = cellColor(content);
+          vial.style.background = col || '#1e3a5c';
+          vial.style.borderColor = col || '#2a4f7a';
+          vial.style.opacity = '0.78';
+          const pos = ROW_LABELS[ri] + (ci+1);
+          vial.setAttribute('data-tip', pos + ': ' + content);
+          if (q && content.toLowerCase().includes(q)) { vial.classList.add('hl'); vial.style.opacity='1'; }
+          else if (q) vial.classList.add('dimmed');
+        }
+        vial.addEventListener('click', () => vialClick(id, ri, ci));
+        grid.appendChild(vial);
+      }
+    }
+    card.appendChild(grid);
+
+    // Edit bar
+    const eb = document.createElement('div');
+    eb.className = 'box-edit-bar';
+    const renameBtn = document.createElement('button');
+    renameBtn.className = 'ebb';
+    renameBtn.textContent = '\u270F\uFE0F More options';
+    renameBtn.addEventListener('click', () => boxRenameModal(id));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'ebb danger';
+    delBtn.textContent = '\uD83D\uDDD1 Delete box';
+    delBtn.addEventListener('click', () => confirmDelete(id));
+    eb.appendChild(renameBtn);
+    eb.appendChild(delBtn);
+    card.appendChild(eb);
+
+    wrap.appendChild(card);
+  });
+
+  // Add box card
+  const addCard = document.createElement('div');
+  addCard.className = 'add-box';
+  addCard.innerHTML = '<span style="font-size:24px">+</span><span>Add new box</span>';
+  addCard.addEventListener('click', addBoxModal);
+  wrap.appendChild(addCard);
+
+  if (visible === 0 && ids.length > 0) {
+    wrap.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted);font-family:JetBrains Mono,monospace"><p>No boxes match your search.</p></div>';
+  }
+  document.getElementById('resultsBar').innerHTML =
+    'Showing <span>' + visible + '</span> of <span>' + ids.length + '</span> boxes' +
+    (q ? ' &middot; "<span>' + q + '</span>"' : '');
+}
+
+function setFilter(mode, btn) {
+  filterMode = mode;
+  document.querySelectorAll('.fb').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function doFilter() { render(); }
+
+// ── LEGEND ───────────────────────────────────────────
+function buildLegend() {
+  const bar = document.getElementById('legendBar');
+  while (bar.children.length > 1) bar.removeChild(bar.lastChild);
+  const seen = new Set();
+  ids.forEach(id => {
+    state[id].rows.flat().forEach(v => {
+      const p = matchParent(v);
+      if (p && CELL_DB[p] && !seen.has(p)) {
+        seen.add(p);
+        const item = document.createElement('div');
+        item.className = 'leg-item';
+        item.innerHTML = '<div class="leg-dot" style="background:' + CELL_DB[p].color + '"></div><span class="leg-label">' + CELL_DB[p].label + '</span>';
+        bar.appendChild(item);
+      }
+    });
+  });
+}
+
+// ── STATS ────────────────────────────────────────────
+function updateStats() {
+  let vials = 0; const parents = new Set();
+  ids.forEach(id => {
+    state[id].rows.flat().forEach(v => {
+      if (v) { vials++; const p = matchParent(v); if(p) parents.add(p); }
+    });
+  });
+  document.getElementById('sBoxes').textContent = ids.length;
+  document.getElementById('sVials').textContent = vials.toLocaleString();
+  document.getElementById('sLines').textContent = parents.size;
+}
+
+// ── CLASSIFICATION ───────────────────────────────────
+function renderClassification() {
+  const wrap = document.getElementById('classWrap');
+  const groups = {
+    'Human T-cell Leukemia / Lymphoma': ['DND41','Jurkat','KOPTK1','CUTLL1','HPBALL','ALL-SIL','TALL-1'],
+    'Human B-cell / Mantle Cell Lymphoma': ['Granta519','Rec1','SP49','Mino','JEKO-1','Millipore CCMCL1','primary MCL PBMC','RL-MCL-14'],
+    'Human B-cell Leukemia / Other': ['MEC1','PGA1','JVM2','GM12878','NALM16','REH'],
+    'Human Multiple Myeloma': ['U266','RPMI 8226','KMS11','MMIS'],
+    'Human Breast Cancer': ['MB157','MCF7','HCC1599','MDA-MB-231','MDA-MB-468','SUM149'],
+    'Packaging / Tool Lines': ['293T','PlatE'],
+    'Mouse B-cell Lines': ['RAG 1-1','38B9','445*3','3-1','5194','A70'],
+  };
+  Object.entries(groups).forEach(([title, keys]) => {
+    const valid = keys.filter(k => CELL_DB[k]);
+    if (!valid.length) return;
+    const sec = document.createElement('div');
+    sec.innerHTML = '<div class="cs-title">' + title + '</div>';
+    const grid = document.createElement('div');
+    grid.className = 'cs-grid';
+    valid.forEach(key => {
+      const info = CELL_DB[key];
+      const row = document.createElement('div');
+      row.className = 'cell-row';
+      const sp = info.species==='human'?'human':'mouse';
+      const gr = info.growth==='suspension'?'susp':'adh';
+      const ds = (info.disease==='normal'||info.disease==='normal/transformed')?'normal':'disease';
+      const ln = info.lineage.includes('T-cell')?'tcell':info.lineage.includes('B-cell')||info.lineage.includes('MCL')?'bcell':info.lineage.includes('breast')?'breast':'other';
+      row.innerHTML =
+        '<div class="cell-swatch" style="background:' + info.color + '"></div>' +
+        '<div><div class="cell-name">' + info.label + '</div>' +
+        '<div class="cell-desc">' + info.note + '</div>' +
+        '<div class="badges">' +
+        '<span class="badge ' + sp + '">' + info.species + '</span>' +
+        '<span class="badge ' + gr + '">' + info.growth + '</span>' +
+        '<span class="badge ' + ds + '">' + info.disease + '</span>' +
+        '<span class="badge ' + ln + '">' + info.lineage + '</span>' +
+        '</div></div>';
+      grid.appendChild(row);
+    });
+    sec.appendChild(grid);
+    wrap.appendChild(sec);
+  });
+}
+
+// ── TABS ─────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+// ── TOAST ────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+}
+
+// ── INIT ─────────────────────────────────────────────
+initState();
+updateStats();
+buildLegend();
+render();
+renderClassification();
+</script>
+</body>
+</html>
